@@ -404,36 +404,31 @@ where
         let result_len: usize = new_shape.iter().product();
         let mut result_data = Vec::with_capacity(result_len);
 
-        // Create a multi-index with the specified index at the given axis
-        let mut base_index = vec![0; self.shape.len()];
-        base_index[axis] = index;
-
         // Calculate strides for the original tensor
         let strides = compute_strides(&self.shape);
 
-        // Helper closure to update the multi-index for the next element
-        let mut update_index = |idx: &mut [usize]| {
-            for (i, dim) in self.shape.iter().enumerate() {
-                if i == axis {
-                    continue;
-                }
-                idx[i] += 1;
-                if idx[i] < *dim {
-                    return true;
-                }
-                idx[i] = 0;
-            }
-            false
-        };
+        // Create a multi-index for the slice, with the given index at the specified axis
+        let mut multi_index = vec![0; self.shape.len()];
+        multi_index[axis] = index;
 
-        // Collect elements for the slice
-        loop {
-            let flat_idx = dot_product(&base_index, &strides);
-            result_data.push(self.data[flat_idx]);
-            
-            if result_data.len() == result_len || !update_index(&mut base_index) {
-                break;
+        // Iterate through the new shape and compute the corresponding indices in the original tensor
+        for i in 0..result_len {
+            let mut current_multi_index = multi_index_from_flat(i, &new_shape);
+
+            // Merge the current multi-index with the slice multi-index
+            let mut full_multi_index = Vec::new();
+            let mut current_index_iter = current_multi_index.into_iter();
+            for j in 0..self.shape.len() {
+                if j == axis {
+                    full_multi_index.push(multi_index[j]);
+                } else {
+                    full_multi_index.push(current_index_iter.next().unwrap());
+                }
             }
+
+            // Compute the flat index and get the value
+            let flat_idx = self.compute_index(&full_multi_index);
+            result_data.push(self.data[flat_idx]);
         }
 
         Tensor {
@@ -682,7 +677,7 @@ mod tests {
     #[test]
     fn test_matrix_rows_and_columns() {
         let matrix = Tensor::from_vec(vec![2, 3], vec![1, 2, 3, 4, 5, 6]);
-        
+
         // Test row access
         let row0 = matrix.row(0);
         assert_eq!(row0.shape(), &[3]);
@@ -709,7 +704,7 @@ mod tests {
     #[test]
     fn test_slice_along_axis() {
         let tensor = Tensor::from_vec(vec![2, 2, 3], vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-        
+
         // Get a slice along axis 0 (should be a 2x3 matrix)
         let slice0 = tensor.slice_along_axis(0, 1);
         assert_eq!(slice0.shape(), &[2, 3]);
