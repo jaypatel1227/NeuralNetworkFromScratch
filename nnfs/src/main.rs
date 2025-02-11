@@ -2,6 +2,8 @@ mod tensor;
 use tensor::matrix::Matrix;
 use tensor::tensor::Tensor;
 use tensor::vector::Vector;
+mod network;
+use network::layer::{Layer, Node};
 
 //
 // Example Usage
@@ -29,19 +31,19 @@ fn main() {
     // --- Transpose and Reshape ---
     let a_trans = a.transpose();
     println!("Transpose of a: {:?}", a_trans);
-    let a_reshaped = a.inner_tensor().reshape(vec![3, 2]);
+    let a_reshaped = a.as_tensor().reshape(vec![3, 2]);
     println!("Reshaped a (3x2): {:?}", a_reshaped);
 
     // --- Reduction Operations ---
     // Sum along axis 0 (summing over rows yields a 1xN tensor)
-    let sum0 = a.inner_tensor().sum(0);
+    let sum0 = a.as_tensor().sum(0);
     println!("Sum of a along axis 0: {:?}", sum0);
     // Mean along axis 1 (requires T: From<f64>)
-    let mean1 = a.inner_tensor().mean(1);
+    let mean1 = a.as_tensor().mean(1);
     println!("Mean of a along axis 1: {:?}", mean1);
-    let max0 = a.inner_tensor().max(0);
+    let max0 = a.as_tensor().max(0);
     println!("Max of a along axis 0: {:?}", max0);
-    let min1 = a.inner_tensor().min(1);
+    let min1 = a.as_tensor().min(1);
     println!("Min of a along axis 1: {:?}", min1);
 
     // --- Vector Operations ---

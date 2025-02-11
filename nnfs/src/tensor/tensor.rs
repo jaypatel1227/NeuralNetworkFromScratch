@@ -96,12 +96,12 @@ where
         Tensor { shape, data }
     }
 
-    /// Returns a reference to the tensor’s shape.
+    /// Returns a reference to the tensor's shape.
     pub fn shape(&self) -> &[usize] {
         &self.shape
     }
 
-    /// Returns a reference to the tensor’s raw data.
+    /// Returns a reference to the tensor's raw data.
     pub fn data(&self) -> &Vec<T> {
         &self.data
     }
@@ -154,7 +154,7 @@ where
         // Align self.shape to the right of broadcast_shape.
         for i in 0..k {
             let bdim = i + (r - k);
-            // If self’s dimension is 1, then its only valid index is 0.
+            // If self's dimension is 1, then its only valid index is 0.
             if self.shape[i] == 1 {
                 indices[i] = 0;
             } else {
@@ -384,6 +384,83 @@ where
             data: result_data,
         }
     }
+
+    /// Returns a slice of the tensor along a specified axis at the given index.
+    /// For example, for a matrix (2D tensor):
+    /// - slice_along_axis(0, i) returns row i
+    /// - slice_along_axis(1, j) returns column j
+    pub fn slice_along_axis(&self, axis: usize, index: usize) -> Self {
+        assert!(axis < self.shape.len(), "Axis {} out of range", axis);
+        assert!(
+            index < self.shape[axis],
+            "Index {} out of bounds for axis {} with size {}",
+            index,
+            axis,
+            self.shape[axis]
+        );
+
+        let mut new_shape = self.shape.clone();
+        new_shape.remove(axis);
+        let result_len: usize = new_shape.iter().product();
+        let mut result_data = Vec::with_capacity(result_len);
+
+        // Create a multi-index with the specified index at the given axis
+        let mut base_index = vec![0; self.shape.len()];
+        base_index[axis] = index;
+
+        // Calculate strides for the original tensor
+        let strides = compute_strides(&self.shape);
+
+        // Helper closure to update the multi-index for the next element
+        let mut update_index = |idx: &mut [usize]| {
+            for (i, dim) in self.shape.iter().enumerate() {
+                if i == axis {
+                    continue;
+                }
+                idx[i] += 1;
+                if idx[i] < *dim {
+                    return true;
+                }
+                idx[i] = 0;
+            }
+            false
+        };
+
+        // Collect elements for the slice
+        loop {
+            let flat_idx = dot_product(&base_index, &strides);
+            result_data.push(self.data[flat_idx]);
+            
+            if result_data.len() == result_len || !update_index(&mut base_index) {
+                break;
+            }
+        }
+
+        Tensor {
+            shape: new_shape,
+            data: result_data,
+        }
+    }
+
+    /// Returns a row of a matrix (2D tensor) as a vector.
+    /// Panics if the tensor is not 2D or if the row index is out of bounds.
+    pub fn row(&self, row: usize) -> Self {
+        assert!(
+            self.shape.len() == 2,
+            "row() can only be called on 2D tensors (matrices)"
+        );
+        self.slice_along_axis(0, row)
+    }
+
+    /// Returns a column of a matrix (2D tensor) as a vector.
+    /// Panics if the tensor is not 2D or if the column index is out of bounds.
+    pub fn column(&self, col: usize) -> Self {
+        assert!(
+            self.shape.len() == 2,
+            "column() can only be called on 2D tensors (matrices)"
+        );
+        self.slice_along_axis(1, col)
+    }
 }
 
 //
@@ -600,5 +677,47 @@ mod tests {
         let min_axis1 = t.min(1);
         assert_eq!(min_axis1.shape(), &[2]);
         assert_eq!(min_axis1.data, &[1.0, 3.0]);
+    }
+
+    #[test]
+    fn test_matrix_rows_and_columns() {
+        let matrix = Tensor::from_vec(vec![2, 3], vec![1, 2, 3, 4, 5, 6]);
+        
+        // Test row access
+        let row0 = matrix.row(0);
+        assert_eq!(row0.shape(), &[3]);
+        assert_eq!(row0.data(), &[1, 2, 3]);
+
+        let row1 = matrix.row(1);
+        assert_eq!(row1.shape(), &[3]);
+        assert_eq!(row1.data(), &[4, 5, 6]);
+
+        // Test column access
+        let col0 = matrix.column(0);
+        assert_eq!(col0.shape(), &[2]);
+        assert_eq!(col0.data(), &[1, 4]);
+
+        let col1 = matrix.column(1);
+        assert_eq!(col1.shape(), &[2]);
+        assert_eq!(col1.data(), &[2, 5]);
+
+        let col2 = matrix.column(2);
+        assert_eq!(col2.shape(), &[2]);
+        assert_eq!(col2.data(), &[3, 6]);
+    }
+
+    #[test]
+    fn test_slice_along_axis() {
+        let tensor = Tensor::from_vec(vec![2, 2, 3], vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+        
+        // Get a slice along axis 0 (should be a 2x3 matrix)
+        let slice0 = tensor.slice_along_axis(0, 1);
+        assert_eq!(slice0.shape(), &[2, 3]);
+        assert_eq!(slice0.data(), &[7, 8, 9, 10, 11, 12]);
+
+        // Get a slice along axis 1 (should be a 2x3 matrix)
+        let slice1 = tensor.slice_along_axis(1, 0);
+        assert_eq!(slice1.shape(), &[2, 3]);
+        assert_eq!(slice1.data(), &[1, 2, 3, 7, 8, 9]);
     }
 }
