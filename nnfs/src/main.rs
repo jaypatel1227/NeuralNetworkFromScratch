@@ -23,7 +23,7 @@ fn main() {
     // --- Matrix Multiplication ---
     let a = Matrix::from_vec(2, 3, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
     let b = Matrix::from_vec(3, 2, vec![7.0, 8.0, 9.0, 10.0, 11.0, 12.0]);
-    let c = a.matmul(&b);
+    let c = a.mul(&b);
     println!("Matrix a: {:?}", a);
     println!("Matrix b: {:?}", b);
     println!("a.matmul(b): {:?}", c);

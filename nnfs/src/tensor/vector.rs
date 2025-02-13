@@ -18,9 +18,9 @@ where
         + PartialOrd,
 {
     /// Creates a new vector from a 1D tensor
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if the tensor is not 1-dimensional
     pub fn from_tensor(tensor: Tensor<T>) -> Self {
         assert!(
@@ -151,6 +151,11 @@ where
     }
 }
 
+impl<T> From<Tensor<T>> for Vector<T> {
+    fn from(tensor: Tensor<T>) -> Self {
+        Vector { tensor }
+    }
+}
 
 #[cfg(test)]
 mod test {
@@ -185,7 +190,7 @@ mod test {
         assert_eq!(vec.len(), 3);
         assert_eq!(vec.data(), &[1, 2, 3]);
     }
-    
+
     #[test]
     fn test_vector_elementwise_addition() {
         let v1 = Vector::from_vec(vec![1, 2, 3]);
@@ -195,3 +200,4 @@ mod test {
         assert_eq!(v3.tensor.data(), &vec![5, 7, 9]);
     }
 }
+

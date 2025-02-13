@@ -715,4 +715,34 @@ mod tests {
         assert_eq!(slice1.shape(), &[2, 3]);
         assert_eq!(slice1.data(), &[1, 2, 3, 7, 8, 9]);
     }
+
+    #[test]
+    fn test_broadcast_addition_row_vector() {
+        // Matrix: 2x3
+        let matrix = Tensor::from_vec(vec![2, 3], vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+        // Row vector: 1x3
+        let row_vector = Tensor::from_vec(vec![1, 3], vec![10.0, 20.0, 30.0]);
+
+        let result = matrix + row_vector;
+
+        assert_eq!(result.shape(), &[2, 3]);
+        // Expected result:
+        // [1+10, 2+20, 3+30, 4+10, 5+20, 6+30] = [11, 22, 33, 14, 25, 36]
+        assert_eq!(result.data, &[11.0, 22.0, 33.0, 14.0, 25.0, 36.0]);
+    }
+
+    #[test]
+    fn test_broadcast_addition_column_vector() {
+        // Matrix: 3x2
+        let matrix = Tensor::from_vec(vec![3, 2], vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+        // Column vector: 3x1
+        let col_vector = Tensor::from_vec(vec![3, 1], vec![10.0, 20.0, 30.0]);
+
+        let result = matrix + col_vector;
+
+        assert_eq!(result.shape(), &[3, 2]);
+        // Expected result:
+        // [1+10, 2+10, 3+20, 4+20, 5+30, 6+30] = [11, 12, 23, 24, 35, 36]
+        assert_eq!(result.data, &[11.0, 12.0, 23.0, 24.0, 35.0, 36.0]);
+    }
 }

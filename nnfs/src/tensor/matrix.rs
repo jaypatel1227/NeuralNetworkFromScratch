@@ -2,7 +2,6 @@ use crate::tensor::tensor::Tensor;
 use crate::tensor::vector::Vector;
 use std::ops::{Add, Div, Index, IndexMut, Mul, Sub};
 
-
 //
 // Matrix: A 2D tensor wrapper
 //
@@ -23,9 +22,9 @@ where
         + PartialOrd,
 {
     /// Creates a new matrix from a 2D tensor
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if the tensor is not 2-dimensional
     pub fn from_tensor(tensor: Tensor<T>) -> Self {
         assert!(
@@ -108,13 +107,6 @@ where
         self.tensor.get_mut(&[row, col])
     }
 
-    /// Standard matrix multiplication.
-    pub fn matmul(&self, other: &Self) -> Self {
-        Matrix {
-            tensor: self.tensor.matmul(&other.tensor),
-        }
-    }
-
     /// Transposes the matrix.
     pub fn transpose(&self) -> Self {
         Matrix {
@@ -134,7 +126,27 @@ where
             tensor: self.tensor.clone() + other.tensor.clone(),
         }
     }
-    // Similarly, you can add methods for sub(), mul(), div(), etc.
+
+    /// Element-wise subtraction.
+    pub fn sub(&self, other: &Self) -> Self {
+        Matrix {
+            tensor: self.tensor.clone() - other.tensor.clone(),
+        }
+    }
+
+    /// Element-wise multiplication.
+    pub fn mul(&self, other: &Self) -> Self {
+        Matrix {
+            tensor: self.tensor.matmul(&other.tensor),
+        }
+    }
+
+    /// Element-wise division.
+    pub fn div(&self, other: &Self) -> Self {
+        Matrix {
+            tensor: self.tensor.clone() / other.tensor.clone(),
+        }
+    }
 }
 
 /// Allow indexing a matrix with (row, col).
@@ -171,6 +183,12 @@ where
     }
 }
 
+impl<T> From<Tensor<T>> for Matrix<T> {
+    fn from(tensor: Tensor<T>) -> Self {
+        Matrix { tensor }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -180,7 +198,7 @@ mod test {
     fn test_matrix_creation_and_access() {
         let matrix = Matrix::new(2, 3, vec![1, 2, 3, 4, 5, 6]);
         assert_eq!(matrix.shape(), (2, 3));
-        
+
         let row0 = matrix.row(0);
         assert_eq!(row0.len(), 3);
         assert_eq!(row0.as_tensor().data(), &[1, 2, 3]);
@@ -209,7 +227,7 @@ mod test {
     fn test_matrix_matmul() {
         let a = Matrix::from_vec(2, 3, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
         let b = Matrix::from_vec(3, 2, vec![7.0, 8.0, 9.0, 10.0, 11.0, 12.0]);
-        let c = a.matmul(&b);
+        let c = a.mul(&b);
         assert_eq!(c.shape(), (2, 2));
         assert_eq!(*c.get(0, 0), 58.0);
         assert_eq!(*c.get(0, 1), 64.0);

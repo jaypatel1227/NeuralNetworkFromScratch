@@ -1,6 +1,8 @@
+use crate::tensor;
 use crate::tensor::matrix::Matrix;
 use crate::tensor::vector::Vector;
-use std::ops::{Add, Div, Index, IndexMut, Mul, Sub};
+use num_traits::Float;
+use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Layer<T> {
@@ -74,6 +76,18 @@ where
             .collect();
         Vector::from_vec(result)
     }
+
+    pub fn forward_batch(&self, input: Matrix<T>) -> Matrix<T> {
+        Matrix::from_vec(
+            input.rows(),
+            self.weight_mat.rows(),
+            (input.mul(&self.weight_mat.transpose()).into_tensor()
+                + self.biases.clone().into_tensor())
+            .data()
+            .clone(),
+        )
+    }
+
     fn weight_mat_and_biases_from_nodes(nodes: Vec<Node<T>>) -> (Matrix<T>, Vector<T>) {
         (
             Matrix::from_vec(
@@ -98,5 +112,26 @@ where
             nodes.push(Node::new(weight_mat.row(i), biases[i]));
         }
         nodes
+    }
+}
+
+impl<T> Layer<T>
+where
+    T: Copy
+        + Default
+        + Add<Output = T>
+        + Sub<Output = T>
+        + Mul<Output = T>
+        + Div<Output = T>
+        + PartialOrd
+        + Float
+        + From<f64>
+        + From<u8>,
+{
+    pub fn new(input_size: usize, num_nodes: usize) -> Self {
+        Layer::new_from_weight_mat_biases(
+            tensor::utils::matrix_random(input_size, num_nodes),
+            tensor::utils::vector_zeros(num_nodes),
+        )
     }
 }
