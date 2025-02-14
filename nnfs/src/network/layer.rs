@@ -4,6 +4,23 @@ use crate::tensor::vector::Vector;
 use num_traits::Float;
 use std::ops::{Add, Div, Mul, Sub};
 
+pub trait LayerLike<T> 
+where
+    T: Copy
+        + Default
+        + Add<Output = T>
+        + Sub<Output = T>
+        + Mul<Output = T>
+        + Div<Output = T>
+        + PartialOrd,
+{
+    fn forward(&self, input: Vector<T>) -> Vector<T>;     
+    fn forward_batch(&self, inputs: Matrix<T>) -> Matrix<T>;     
+    fn input_size(&self) -> usize;     
+    fn output_size(&self) -> usize;     
+}
+
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Layer<T> {
     nodes: Vec<Node<T>>,
@@ -68,25 +85,7 @@ where
         }
     }
 
-    pub fn forward(&self, input: Vector<T>) -> Vector<T> {
-        let result: Vec<T> = self
-            .nodes
-            .iter()
-            .map(|node: &Node<T>| node.forward(input.clone()))
-            .collect();
-        Vector::from_vec(result)
-    }
 
-    pub fn forward_batch(&self, input: Matrix<T>) -> Matrix<T> {
-        Matrix::from_vec(
-            input.rows(),
-            self.weight_mat.rows(),
-            (input.mul(&self.weight_mat.transpose()).into_tensor()
-                + self.biases.clone().into_tensor())
-            .data()
-            .clone(),
-        )
-    }
 
     fn weight_mat_and_biases_from_nodes(nodes: Vec<Node<T>>) -> (Matrix<T>, Vector<T>) {
         (
@@ -112,6 +111,45 @@ where
             nodes.push(Node::new(weight_mat.row(i), biases[i]));
         }
         nodes
+    }
+}
+
+impl<T> LayerLike<T> for Layer<T>
+where
+    T: Copy
+        + Default
+        + Add<Output = T>
+        + Sub<Output = T>
+        + Mul<Output = T>
+        + Div<Output = T>
+        + PartialOrd,
+ {
+    fn forward(&self, input: Vector<T>) -> Vector<T> {
+        let result: Vec<T> = self
+            .nodes
+            .iter()
+            .map(|node: &Node<T>| node.forward(input.clone()))
+            .collect();
+        Vector::from_vec(result)
+    }
+
+    fn forward_batch(&self, input: Matrix<T>) -> Matrix<T> {
+        Matrix::from_vec(
+            input.rows(),
+            self.weight_mat.rows(),
+            (input.mul(&self.weight_mat.transpose()).into_tensor()
+                + self.biases.clone().into_tensor())
+            .data()
+            .clone(),
+        )
+    }
+    
+    fn input_size(&self) -> usize {
+        self.weight_mat.cols()
+    }
+
+    fn output_size(&self) -> usize {
+        self.weight_mat.rows()
     }
 }
 

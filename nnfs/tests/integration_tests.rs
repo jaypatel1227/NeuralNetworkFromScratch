@@ -5,7 +5,7 @@ use nnfs::tensor::vector::Vector;
 fn integration_test_matrix_operations() {
     let a = Matrix::from_vec(2, 3, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
     let b = Matrix::from_vec(3, 2, vec![7.0, 8.0, 9.0, 10.0, 11.0, 12.0]);
-    let c = a.matmul(&b);
+    let c = a.mul(&b);
     assert_eq!(c.shape(), (2, 2));
 }
 
